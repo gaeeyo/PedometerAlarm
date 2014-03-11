@@ -2,9 +2,6 @@ package jp.syoboi.android.pedometeralarm;
 
 import android.app.Application;
 
-import java.io.File;
-
-import jp.syoboi.android.pedometeralarm.utils.MyLog;
 import jp.syoboi.android.pm2hg.HatenaOAuth.OAuthToken;
 
 import org.androidannotations.annotations.AfterInject;
@@ -18,7 +15,7 @@ public class MyApp extends Application {
 	
 	@AfterInject
 	void afterInject() {
-		MyLog.setFile(new File(getCacheDir(), "pedometerAlarm.log"));
+//		MyLog.setFile(new File(getCacheDir(), "pedometerAlarm.log"));
 	}
 	
 	

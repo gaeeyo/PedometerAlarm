@@ -68,10 +68,12 @@ public class LogFragment extends Fragment {
 		ArrayList<String> lines = new ArrayList<String>();
 		BufferedReader br = null;
 		try {
-			br = new BufferedReader(new FileReader(MyLog.getFile()));
-			String line;
-			while ((line = br.readLine()) != null) {
-				lines.add(line);
+			if (MyLog.getFile() != null) {
+				br = new BufferedReader(new FileReader(MyLog.getFile()));
+				String line;
+				while ((line = br.readLine()) != null) {
+					lines.add(line);
+				}
 			}
 			onLoadLog(lines);
 			
