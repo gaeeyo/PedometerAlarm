@@ -9,7 +9,6 @@ public interface GlobalPrefs {
 	@DefaultBoolean(true)
 	public boolean isActive();
 	
-	public String hatenaAuth();
 	public int steps();
 	public long pollingInterval();
 	public long lastTime();

@@ -1,10 +1,26 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android" >
 
-    <PreferenceCategory android:title="@string/hatenaGraph" >
-        <Preference
-            android:key="loginHatena"
-            android:title="@string/loginHatena" />
-    </PreferenceCategory>
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="isActive"
+        android:summary="@string/isActiveSummary"
+        android:title="@string/isActive" />
+
+    <Preference
+        android:key="openPedometerSettings"
+        android:title="@string/openPedometerSetting" >
+        <intent
+            android:targetClass="jp.co.sharp.android.settings.pedometersetting.PedometerSettingActivity"
+            android:targetPackage="com.android.settings" />
+    </Preference>
+    <Preference
+        android:key="tts"
+        android:title="@string/tts" >
+        <intent android:action="com.android.settings.TTS_SETTINGS" />
+    </Preference>
+    <Preference
+        android:key="ttsTest"
+        android:title="@string/testAlarm" />
 
 </PreferenceScreen>

@@ -15,7 +15,6 @@
         android:required="true" />
 
     <application
-        android:name="MyApp_"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
@@ -32,24 +31,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <!-- ログイン -->
-        <activity
-            android:name=".activity.LoginActivity_"
-            android:label="@string/loginHatena" >
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.BROWSABLE" />
-                <category android:name="android.intent.category.DEFAULT" />
-
-                <data
-                    android:host="callback"
-                    android:scheme="jp.syoboi.pm2hg" />
-            </intent-filter>
-        </activity>
-
-        <!-- 設定 -->
-        <activity android:name="jp.syoboi.android.pedometeralarm.activity.SettingActivity_" />
 
         <service
             android:name=".service.PollingService_"
@@ -58,7 +39,10 @@
         <receiver android:name=".receiver.MyReceiver_" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-                <action android:name="android.intent.action.HEADSET_PLUG" />
+<!--                 <action android:name="android.intent.action.HEADSET_PLUG" /> -->
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
             </intent-filter>
         </receiver>
     </application>

@@ -1,22 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">PedometerAlarm</string>
+    <string name="app_name">歩数お知らせ for SH</string>
     <string name="settings">設定</string>
-    <string name="hello_world">Hello world!</string>
 	<string name="openPedometerSetting">歩数計の設定</string>
-	<string name="prepareLogin">ログインの準備中…</string>
-	<string name="login">ログイン</string>
-	<string name="loginHatena">はてなにログイン</string>
-	<string name="loginPrompt">はてなにログインして、はてなグラフに歩数を送信できます。\n\nはてなグラフ\nhttp://graph.hatena.ne.jp\n\nログインボタンを押すとブラウザが起動します。\nブラウザでログイン後、表示された認証コードをコピーして、このアプリに戻ってきてください。</string>
-	<string name="codePrompt">ログイン後に表示されたコードを入力してください。</string>
-	<string name="codeHint">コード</string>
-	<string name="enterCode">コードを確定</string>
-	<string name="pasteCode">張り付け</string>
-	<string name="hatenaGraph">はてなグラフ</string>
-	<string name="verifyingCode">コードを検証しています…</string>
-	<string name="loginAsFmt">id:%1$s(%2$s) でログインしています。タップしてログアウトします。</string>
-	
+	<string name="isActive">アラームを使用する</string>
+	<string name="isActiveSummary">500歩ごとに音声でお知らせします</string>
+	<string name="tts">TextToSpeech(TTS)</string>
+	<string name="ttsNotFound">日本語のTTSエンジンが有効になっていません</string>
+	<string name="ttsInstalled">インストール済みです</string>
+				
 	<string name="pedometerNotFound">この端末には歩数計が搭載されていないか、未対応の端末です。このアプリは SHARP の歩数計内蔵スマートフォンでのみ利用可能です。</string>
-	<string name="suggestPedometerSetting">歩数計が無効になっています。「歩数計の設定」を押して、歩数計をONにしてください。</string>
+	<string name="suggestPedometerSetting">歩数計がOFFになっています。ここをタップして「歩数計設定」を開いて、歩数計をONにしてください。</string>
+	<string name="testAlarm">アラームをテスト再生</string>
 </resources>

@@ -1,30 +1,29 @@
 package jp.syoboi.android.pedometeralarm.activity;
 
-import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.view.View;
-import android.widget.TextView;
+import android.media.AudioManager;
+import android.preference.Preference;
+import android.preference.Preference.OnPreferenceClickListener;
+import android.preference.PreferenceActivity;
+import android.speech.tts.TextToSpeech;
+import android.speech.tts.TextToSpeech.OnInitListener;
+
+import java.util.HashMap;
+import java.util.Locale;
 
 import jp.co.sharp.android.hardware.Pedometer;
 import jp.syoboi.android.pedometeralarm.GlobalPrefs_;
 import jp.syoboi.android.pedometeralarm.R;
-import jp.syoboi.android.pedometeralarm.service.PollingService;
-import jp.syoboi.android.pedometeralarm.utils.PmUtils;
+import jp.syoboi.android.pedometeralarm.service.PollingService_;
 
-import org.androidannotations.annotations.AfterInject;
-import org.androidannotations.annotations.Click;
 import org.androidannotations.annotations.EActivity;
-import org.androidannotations.annotations.OptionsItem;
-import org.androidannotations.annotations.OptionsMenu;
-import org.androidannotations.annotations.ViewById;
 import org.androidannotations.annotations.sharedpreferences.Pref;
  
-@EActivity(R.layout.main_activity)
-@OptionsMenu(R.menu.main_activity_menu)
-public class MainActivity extends Activity {
+@EActivity
+public class MainActivity extends PreferenceActivity {
 
 	static final String TAG = "MainActivity";
 	
@@ -36,13 +35,16 @@ public class MainActivity extends Activity {
 	} 
 	 
 
-	@ViewById(R.id.warningMessage)		TextView	mWarningMessage;
-	@ViewById(R.id.pedometerSetting)	View		mOpenPedometerSettings;
-	
 	@Pref		GlobalPrefs_	mPrefs;
 	
-	Pedometer 	mPedometer;
 	
+	Pedometer 		mPedometer;
+	TextToSpeech	mTts;
+	boolean			mTtsInitialized;
+	
+	Preference		mPedometerPref;
+	Preference		mTtsPref;
+	Preference		mTestTts;
 	
 	/**
 	 * Pedometerからの通知を処理
@@ -54,57 +56,123 @@ public class MainActivity extends Activity {
 		}
 	};
 	
-	@AfterInject
-	void afterInject() {
+	@SuppressWarnings("deprecation")
+	@Override
+	protected void onCreate(android.os.Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		addPreferencesFromResource(R.xml.settings);
+		
 		mPedometer = Pedometer.createInstance(this);
+		mPedometerPref = findPreference("openPedometerSettings");
+		mTtsPref = findPreference("tts");
+		mTestTts = findPreference("ttsTest");
+		
+		mTtsPref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+			@Override
+			public boolean onPreferenceClick(Preference preference) {
+				return false;
+			}
+		});
+		mTestTts.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+			@Override
+			public boolean onPreferenceClick(Preference preference) {
+				ttsTest();
+				return true;
+			}
+		});
+		
+		// 有効/無効のスイッチが切り替わったらサービスの状態を更新する
+		findPreference(mPrefs.isActive().key()).setOnPreferenceClickListener(new OnPreferenceClickListener() {
+			
+			@Override
+			public boolean onPreferenceClick(Preference preference) {
+				Context context = MainActivity.this;
+				if (mPrefs.isActive().get()) {
+					PollingService_.intent(context).start();
+				} else {
+					PollingService_.intent(context).stop();
+				}
+				return false;
+			}
+		});
 	}
-	
+
 	@Override
 	protected void onResume() {
 		super.onResume();
 		
 		registerReceiver(mReceiver, INTENT_FILTER_PEDOMETER);
+		
+		mTtsInitialized = false;
+		mTts = new TextToSpeech(this, new OnInitListener() {
+			@Override
+			public void onInit(int status) {
+				mTtsInitialized = (status == TextToSpeech.SUCCESS);
+				updateStatus();
+			}
+		});
+		
 		updateStatus();
 		
 		// Alarmを更新する
 		if (mPrefs.isActive().get()) {
-			PollingService.updateAlarm(this);
+//			PollingService.updateAlarm(this);
+			PollingService_.intent(this).start();
 		}
 	}
 	
+	
+	
 	@Override
 	protected void onPause() {
+		if (mTts != null) {
+			mTts.shutdown();
+			mTts = null;
+		}
 		unregisterReceiver(mReceiver);
 		super.onPause();
 	}
 	
 	void updateStatus() {
-		boolean showWarning = true;
 		if (mPedometer == null) {
-			mWarningMessage.setText(R.string.pedometerNotFound);
+			mPedometerPref.setSummary(R.string.pedometerNotFound);
 		}
 		else {
 			int measureStatus = mPedometer.getIntParameter(Pedometer.MEASURE_STATUS);
 			switch (measureStatus) {
 			case Pedometer.DEVICE_STOPED:
-				mWarningMessage.setText(R.string.suggestPedometerSetting);
+				mPedometerPref.setSummary(R.string.suggestPedometerSetting);
 				break;
 			default:
-				showWarning = false;
+				mPedometerPref.setSummary(null);
 				break;
 			}
 		}
-		mOpenPedometerSettings.setEnabled(mPedometer != null);
-		mWarningMessage.setVisibility(showWarning ? View.VISIBLE : View.GONE);
-	}
+		mPedometerPref.setEnabled(mPedometer != null);
 
-	@Click(R.id.pedometerSetting)
-	void openPedometerSettings() {
-		startActivity(PmUtils.createSettingIntent());
+		if (mTts != null) {
+			Locale locale = mTts.getLanguage();
+			if (locale == null) {
+				mTtsPref.setSummary(R.string.ttsNotFound);
+			}
+			else {
+				mTtsPref.setSummary(R.string.ttsInstalled);
+			}
+			mTestTts.setEnabled(mTts != null);
+		}
 	}
 	
-	@OptionsItem(R.id.settings)
-	void onSettings() {
-		SettingActivity_.intent(this).start();
+	void ttsTest() {
+		if (mTts != null) {
+			HashMap<String, String> params = new HashMap<String, String>();
+			params.put(TextToSpeech.Engine.KEY_PARAM_STREAM, 
+					String.valueOf(AudioManager.STREAM_NOTIFICATION));
+			
+			int steps = 1260;
+			if (mPedometer != null) {
+				steps = mPedometer.getIntParameter(Pedometer.STEPS);
+			}
+			mTts.speak("現在、" + steps + "歩です", TextToSpeech.QUEUE_FLUSH, params);
+		}
 	}
 }

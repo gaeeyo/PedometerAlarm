@@ -1,6 +1,7 @@
 package jp.syoboi.android.pedometeralarm.service;
 
-import android.app.AlarmManager;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -10,7 +11,6 @@ import android.content.IntentFilter;
 import android.media.AudioManager;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.SystemClock;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 import android.speech.tts.TextToSpeech.OnUtteranceCompletedListener;
@@ -20,6 +20,8 @@ import java.util.HashMap;
 
 import jp.co.sharp.android.hardware.Pedometer;
 import jp.syoboi.android.pedometeralarm.GlobalPrefs_;
+import jp.syoboi.android.pedometeralarm.R;
+import jp.syoboi.android.pedometeralarm.activity.MainActivity_;
 import jp.syoboi.android.pedometeralarm.utils.MyLog;
 
 import org.androidannotations.annotations.EService;
@@ -31,8 +33,7 @@ public class PollingService extends Service {
  
 	static final String TAG = "PollingService";
 	
-	public static final String ACTION_START = "start";
-	public static final String ACTION_STOP = "stop";
+	static final int NID_APP = 1;
 	
 	/**
 	 * 1秒あたりの歩数(1秒に3.33歩歩く可能性がある)
@@ -47,12 +48,14 @@ public class PollingService extends Service {
 
 	@Pref GlobalPrefs_	mPrefs;
 	
-	@SystemService AudioManager	mAudioManager;
+	@SystemService AudioManager			mAudioManager;
+	@SystemService NotificationManager	mNotificationManager;
 	
 	static Handler HANDLER = new Handler();
 	
 	Pedometer	mPedometer;
-	int			mPlugState = 0;
+	Notification mNotification;
+	int			mPlugState = -1;
 	int			mAlarmSteps = 500;
 
 	int			mSteps = -1;
@@ -65,9 +68,9 @@ public class PollingService extends Service {
 		@Override
 		public void onReceive(Context context, Intent intent) {
 			if (Intent.ACTION_HEADSET_PLUG.equals(intent.getAction())) {
-				HANDLER.removeCallbacks(mCheckRunnable);
 				int state = intent.getIntExtra("state", 0);
 				if (mPlugState != state) {
+					HANDLER.removeCallbacks(mCheckRunnable);
 					mPlugState = state;
 					if (state != 0) {
 						mSteps = 0;
@@ -78,19 +81,26 @@ public class PollingService extends Service {
 			}
 		}
 	};
-
+	
+	
 	@Override
 	public void onCreate() {
 		super.onCreate();
+		
+		PendingIntent pi = PendingIntent.getActivity(this, 0, 
+				MainActivity_.intent(this).get(), 
+				PendingIntent.FLAG_UPDATE_CURRENT);
+		
+		mNotification = new Notification.Builder(this)
+			.setOngoing(true)
+			.setContentIntent(pi)
+			.setContentTitle(getString(R.string.app_name))
+			.setSmallIcon(R.drawable.stat_notify_app)
+			.getNotification();
+		
 		mPedometer = Pedometer.createInstance(this);
 		registerReceiver(mReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
 		initSteps();
-	}
-	
-	@Override
-	public void onDestroy() {
-		unregisterReceiver(mReceiver);
-		super.onDestroy();
 	}
 	
 	@Override
@@ -98,28 +108,24 @@ public class PollingService extends Service {
 		return null;
 	}
 
+	@Override
+	public void onDestroy() {
+		mNotificationManager.cancel(NID_APP);
+		HANDLER.removeCallbacks(mCheckRunnable);
+		unregisterReceiver(mReceiver);
+		super.onDestroy();
+	}
 	
 	@Override
 	public int onStartCommand(Intent intent, int flags, int startId) {
-
-		String action = null;
-		if (intent != null) {
-			action = intent.getAction();
-		}
+		HANDLER.removeCallbacks(mCheckRunnable);
+		HANDLER.post(mCheckRunnable);
+		mNotificationManager.notify(NID_APP, mNotification);
+		startForeground(NID_APP, mNotification);
 		
-		if (action == null || ACTION_START.equals(action)) {
-			if (action == null) {
-				initSteps();
-			}
-			HANDLER.removeCallbacks(mCheckRunnable);
-			HANDLER.post(mCheckRunnable);
-		} else {
-			HANDLER.removeCallbacks(mCheckRunnable);
-		}
-		
-		return Service.START_STICKY;
+		return START_STICKY;
 	}
-
+	
 	void initSteps() {
 		mSteps = mPedometer.getIntParameter(Pedometer.STEPS);
 		mPrevTime = System.currentTimeMillis();
@@ -229,7 +235,7 @@ public class PollingService extends Service {
 		}
 	}
 	
-	
+	/*
 	public int onStartCommand_old(Intent intent, int flags, int startId) {
 	
 		int newSteps = mPedometer.getIntParameter(Pedometer.STEPS);
@@ -263,16 +269,20 @@ public class PollingService extends Service {
 		
 		return super.onStartCommand(intent, flags, startId);
 	}
+	*/
 
+	/*
 	public static void updateAlarm(Context context) {
 		updateAlarm(context, SystemClock.elapsedRealtime(), INTERVAL_POLLING);
 	}
+	*/
 
 	
 	/**
 	 * Alarmをアップデート
 	 * @param context
 	 */
+	/*
 	public static void updateAlarm(Context context, long next, long interval) {
 		GlobalPrefs_ prefs = new GlobalPrefs_(context);
 		AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
@@ -291,13 +301,15 @@ public class PollingService extends Service {
 			am.cancel(createPendingIntent(context));
 		}
 	}
+	*/
 	
 	
-	
+	/*
 	public static PendingIntent createPendingIntent(Context context) {
 		Intent i = new Intent(context, PollingService_.class);
 		return PendingIntent.getService(context, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
 	}
+	*/
 
 	
 }
