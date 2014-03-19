@@ -18,3 +18,10 @@
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
+# エラーログが見づらい問題を回避
+-keepattributes SourceFile,LineNumberTable
+-keep class * extends java.lang.Exception
+
+# androidanntations
+-dontwarn org.springframework.**
