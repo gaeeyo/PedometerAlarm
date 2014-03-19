@@ -6,11 +6,10 @@
 	<string name="openPedometerSetting">歩数計の設定</string>
 	<string name="isActive">アラームを使用する</string>
 	<string name="isActiveSummary">500歩ごとに音声でお知らせします</string>
-	<string name="tts">TextToSpeech(TTS)</string>
-	<string name="ttsNotFound">日本語のTTSエンジンが有効になっていません</string>
-	<string name="ttsInstalled">インストール済みです</string>
+	<string name="tts">読み上げの設定</string>
+	<string name="ttsNotFound">日本語のテキスト読み上げエンジンがインストールされていないか、無効になっています</string>
+	<string name="ttsInstalled">テキスト読み上げエンジンはインストール済みです</string>
 				
 	<string name="pedometerNotFound">この端末には歩数計が搭載されていないか、未対応の端末です。このアプリは SHARP の歩数計内蔵スマートフォンでのみ利用可能です。</string>
 	<string name="suggestPedometerSetting">歩数計がOFFになっています。ここをタップして「歩数計設定」を開いて、歩数計をONにしてください。</string>
-	<string name="testAlarm">アラームをテスト再生</string>
 </resources>

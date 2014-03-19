@@ -19,8 +19,8 @@
         android:title="@string/tts" >
         <intent android:action="com.android.settings.TTS_SETTINGS" />
     </Preference>
-    <Preference
-        android:key="ttsTest"
-        android:title="@string/testAlarm" />
+<!--     <Preference -->
+<!--         android:key="ttsTest" -->
+<!--         android:title="@string/testAlarm" /> -->
 
 </PreferenceScreen>

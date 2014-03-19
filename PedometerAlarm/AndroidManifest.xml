@@ -9,6 +9,7 @@
         android:targetSdkVersion="19" />
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <uses-feature
         android:name="jp.co.sharp.android.pedometer"
@@ -36,13 +37,16 @@
             android:name=".service.PollingService_"
             android:exported="false" />
 
-        <receiver android:name=".receiver.MyReceiver_" >
+        <receiver
+            android:name=".receiver.MyReceiver_"
+            android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
-<!--                 <action android:name="android.intent.action.HEADSET_PLUG" /> -->
             </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.MY_PACKAGE_REPLACED"/>
+            <intent-filter android:priority="1000" >
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+
+                <data android:scheme="package" />
             </intent-filter>
         </receiver>
     </application>

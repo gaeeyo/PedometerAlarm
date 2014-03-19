@@ -4,14 +4,12 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.media.AudioManager;
 import android.preference.Preference;
 import android.preference.Preference.OnPreferenceClickListener;
 import android.preference.PreferenceActivity;
 import android.speech.tts.TextToSpeech;
 import android.speech.tts.TextToSpeech.OnInitListener;
 
-import java.util.HashMap;
 import java.util.Locale;
 
 import jp.co.sharp.android.hardware.Pedometer;
@@ -44,7 +42,7 @@ public class MainActivity extends PreferenceActivity {
 	
 	Preference		mPedometerPref;
 	Preference		mTtsPref;
-	Preference		mTestTts;
+//	Preference		mTestTts;
 	
 	/**
 	 * Pedometerからの通知を処理
@@ -65,22 +63,16 @@ public class MainActivity extends PreferenceActivity {
 		mPedometer = Pedometer.createInstance(this);
 		mPedometerPref = findPreference("openPedometerSettings");
 		mTtsPref = findPreference("tts");
-		mTestTts = findPreference("ttsTest");
+//		mTestTts = findPreference("ttsTest");
 		
-		mTtsPref.setOnPreferenceClickListener(new OnPreferenceClickListener() {
-			@Override
-			public boolean onPreferenceClick(Preference preference) {
-				return false;
-			}
-		});
-		mTestTts.setOnPreferenceClickListener(new OnPreferenceClickListener() {
-			@Override
-			public boolean onPreferenceClick(Preference preference) {
-				ttsTest();
-				return true;
-			}
-		});
-		
+//		mTestTts.setOnPreferenceClickListener(new OnPreferenceClickListener() {
+//			@Override
+//			public boolean onPreferenceClick(Preference preference) {
+//				ttsTest();
+//				return true;
+//			}
+//		});
+//		
 		// 有効/無効のスイッチが切り替わったらサービスの状態を更新する
 		findPreference(mPrefs.isActive().key()).setOnPreferenceClickListener(new OnPreferenceClickListener() {
 			
@@ -158,21 +150,21 @@ public class MainActivity extends PreferenceActivity {
 			else {
 				mTtsPref.setSummary(R.string.ttsInstalled);
 			}
-			mTestTts.setEnabled(mTts != null);
+//			mTestTts.setEnabled(mTts != null);
 		}
 	}
 	
-	void ttsTest() {
-		if (mTts != null) {
-			HashMap<String, String> params = new HashMap<String, String>();
-			params.put(TextToSpeech.Engine.KEY_PARAM_STREAM, 
-					String.valueOf(AudioManager.STREAM_NOTIFICATION));
-			
-			int steps = 1260;
-			if (mPedometer != null) {
-				steps = mPedometer.getIntParameter(Pedometer.STEPS);
-			}
-			mTts.speak("現在、" + steps + "歩です", TextToSpeech.QUEUE_FLUSH, params);
-		}
-	}
+//	void ttsTest() {
+//		if (mTts != null) {
+//			HashMap<String, String> params = new HashMap<String, String>();
+//			params.put(TextToSpeech.Engine.KEY_PARAM_STREAM, 
+//					String.valueOf(AudioManager.STREAM_MUSIC));
+//			
+//			int steps = 1260;
+//			if (mPedometer != null) {
+//				steps = mPedometer.getIntParameter(Pedometer.STEPS);
+//			}
+//			mTts.speak("現在、" + steps + "歩です", TextToSpeech.QUEUE_FLUSH, params);
+//		}
+//	}
 }

@@ -1,7 +1,6 @@
 package jp.syoboi.android.pedometeralarm.service;
 
 import android.app.Notification;
-import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -9,6 +8,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.media.AudioManager;
+import android.media.AudioManager.OnAudioFocusChangeListener;
 import android.os.Handler;
 import android.os.IBinder;
 import android.speech.tts.TextToSpeech;
@@ -49,7 +49,6 @@ public class PollingService extends Service {
 	@Pref GlobalPrefs_	mPrefs;
 	
 	@SystemService AudioManager			mAudioManager;
-	@SystemService NotificationManager	mNotificationManager;
 	
 	static Handler HANDLER = new Handler();
 	
@@ -101,6 +100,8 @@ public class PollingService extends Service {
 		mPedometer = Pedometer.createInstance(this);
 		registerReceiver(mReceiver, new IntentFilter(Intent.ACTION_HEADSET_PLUG));
 		initSteps();
+		
+		speak(mPedometer.getIntParameter(Pedometer.STEPS));
 	}
 	
 	@Override
@@ -110,7 +111,7 @@ public class PollingService extends Service {
 
 	@Override
 	public void onDestroy() {
-		mNotificationManager.cancel(NID_APP);
+		stopForeground(true);
 		HANDLER.removeCallbacks(mCheckRunnable);
 		unregisterReceiver(mReceiver);
 		super.onDestroy();
@@ -120,7 +121,6 @@ public class PollingService extends Service {
 	public int onStartCommand(Intent intent, int flags, int startId) {
 		HANDLER.removeCallbacks(mCheckRunnable);
 		HANDLER.post(mCheckRunnable);
-		mNotificationManager.notify(NID_APP, mNotification);
 		startForeground(NID_APP, mNotification);
 		
 		return START_STICKY;
@@ -128,7 +128,12 @@ public class PollingService extends Service {
 	
 	void initSteps() {
 		mSteps = mPedometer.getIntParameter(Pedometer.STEPS);
+		mNextAlarmSteps = computeNextSteps(mSteps);
 		mPrevTime = System.currentTimeMillis();
+	}
+	
+	int computeNextSteps(int steps) {
+		return steps + (mAlarmSteps - (steps % mAlarmSteps));
 	}
 	
 	Runnable	mCheckRunnable = new Runnable() {
@@ -145,7 +150,7 @@ public class PollingService extends Service {
 				long ellapsed = (now - mPrevTime);
 				
 				// 歩数が変わっていた
-				int newNextSteps = newSteps + (mAlarmSteps - (newSteps % mAlarmSteps));
+				int newNextSteps = computeNextSteps(newSteps);
 				float timePerStep = MIN_TIME_PER_STEP;
 				if (ellapsed > 0 && newSteps > mSteps) {
 					timePerStep = (newSteps - mSteps) / ellapsed; 
@@ -198,118 +203,52 @@ public class PollingService extends Service {
 			mTextToSpeech.setOnUtteranceCompletedListener(new OnUtteranceCompletedListener() {
 				@Override
 				public void onUtteranceCompleted(String utteranceId) {
-					mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, mMusicVolume, 0);
-//					mAudioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, mSpeakVolume, 0);
+					abandonAudioFocus();
 				}
 			});
 		}
 		
-		String speakText = String.valueOf("げんざい、" + steps + " ほです");
+		String speakText = String.valueOf("現在、" + steps + "歩です");
 		speakNow(speakText);
 	}
-	
-	int mMusicVolume;
-	int mSpeakVolume;
 	
 	void speakNow(String text) {
 		if (mTextToSpeechState == TextToSpeech.SUCCESS) {
 
-			mMusicVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
-			mSpeakVolume = mAudioManager.getStreamVolume(AudioManager.STREAM_NOTIFICATION);
-
 			HashMap<String,String> params = new HashMap<String,String>();
 			params.put(TextToSpeech.Engine.KEY_PARAM_STREAM, 
-					String.valueOf(AudioManager.STREAM_NOTIFICATION));
+					String.valueOf(AudioManager.STREAM_MUSIC));
 			params.put(TextToSpeech.Engine.KEY_PARAM_UTTERANCE_ID, 
 					"1");  
-//			params.put(TextToSpeech.Engine.KEY_PARAM_VOLUME,
-//					String.valueOf((int)(mMusicVolume * 0.8)));
-			 
-			mAudioManager.setStreamVolume(AudioManager.STREAM_MUSIC, (int)(mMusicVolume * 0.7), 0);
-//			mAudioManager.setStreamVolume(AudioManager.STREAM_NOTIFICATION, (int)(mMusicVolume * 0.8), 0);
-
-			mTextToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params);
+			
+			int audioFocus = mAudioManager.requestAudioFocus(
+					mOnAudioFocusChangeListener,
+					AudioManager.STREAM_MUSIC, 
+					AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK);
+			mHasAudioFocus = (audioFocus == AudioManager.AUDIOFOCUS_REQUEST_GRANTED);
+			
+			int speakResult = mTextToSpeech.speak(text, TextToSpeech.QUEUE_FLUSH, params);
+			if (speakResult != TextToSpeech.SUCCESS) {
+				abandonAudioFocus();
+			}
 			mSpeakText = null;
 		} else {
 			mSpeakText = text;
 		}
 	}
 	
-	/*
-	public int onStartCommand_old(Intent intent, int flags, int startId) {
+	boolean mHasAudioFocus;
 	
-		int newSteps = mPedometer.getIntParameter(Pedometer.STEPS);
-		int oldSteps = mPrefs.steps().get();
-		boolean changed = (newSteps != oldSteps);
-		
-		MyLog.v(TAG, "onStartCommand 歩数: " + newSteps + " changed:" + changed);
-		if (changed) {
-			// 歩数が変わっていた
-			int newNextSteps = newSteps + (1000 - (newSteps % 1000));
-			long minNextTime = (long) ((newNextSteps - newSteps) * MIN_TIME_PER_STEP); 
-			MyLog.v(TAG, "次のアラート newNextSteps:" + newNextSteps
-					+ " newNextStepまでの時間(分):" + (minNextTime / DateUtils.MINUTE_IN_MILLIS) 
-					);
-
-			// 設定で有効化されている
-			long interval = Math.max(minNextTime, INTERVAL_POLLING);
-			updateAlarm(this, minNextTime, interval);
-			
-			mPrefs.edit()
-			.steps().put(newSteps)
-			.pollingInterval().put(newSteps)
-			.lastTime().put(System.currentTimeMillis())
-			.nextAlarmSteps().put(newNextSteps)
-			.apply();
-			
-		}
-		else {
-		}
-		
-		
-		return super.onStartCommand(intent, flags, startId);
-	}
-	*/
-
-	/*
-	public static void updateAlarm(Context context) {
-		updateAlarm(context, SystemClock.elapsedRealtime(), INTERVAL_POLLING);
-	}
-	*/
-
-	
-	/**
-	 * Alarmをアップデート
-	 * @param context
-	 */
-	/*
-	public static void updateAlarm(Context context, long next, long interval) {
-		GlobalPrefs_ prefs = new GlobalPrefs_(context);
-		AlarmManager am = (AlarmManager) context.getSystemService(Context.ALARM_SERVICE);
-		
-		if (prefs.isActive().get()) {
-			MyLog.v(TAG, "アラーム設定 interval:" + interval + "(" + (interval / DateUtils.MINUTE_IN_MILLIS) + "分)");
-			
-			// 設定で有効化されている
-			am.setInexactRepeating(AlarmManager.ELAPSED_REALTIME, 
-					next,
-					interval, createPendingIntent(context));
-		} 
-		else {
-			MyLog.v(TAG, "アラーム無効");
-			// 設定で無効化されている
-			am.cancel(createPendingIntent(context));
+	void abandonAudioFocus() {
+		if (mHasAudioFocus) {
+			mHasAudioFocus = false;
+			mAudioManager.abandonAudioFocus(mOnAudioFocusChangeListener);
 		}
 	}
-	*/
 	
-	
-	/*
-	public static PendingIntent createPendingIntent(Context context) {
-		Intent i = new Intent(context, PollingService_.class);
-		return PendingIntent.getService(context, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
-	}
-	*/
-
-	
+	OnAudioFocusChangeListener mOnAudioFocusChangeListener = new OnAudioFocusChangeListener() {
+		@Override
+		public void onAudioFocusChange(int focusChange) {
+		}
+	};
 }
